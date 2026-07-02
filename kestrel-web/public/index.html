@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Liquidity — Markets, rendered</title>
+<style>
+  :root{
+    --violet:#b8a9ff;
+    --ice:#9fd4ff;
+    --pink:#f3b5ff;
+    --white:#f6f4ff;
+    --ink:#070611;
+    --ink-2:#0d0b1c;
+    --display:"Space Grotesk", system-ui, sans-serif;
+    --body:"Inter", system-ui, sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--body);
+    background:var(--ink);
+    color:var(--white);
+    overflow-x:hidden;
+    cursor:none;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* full-screen fixed 3D underlay */
+  #scene{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background:radial-gradient(120% 90% at 50% 10%, #15122b 0%, #0a0818 45%, #050410 100%);
+  }
+  #scene canvas{display:block}
+
+  /* content sits ABOVE the model */
+  .stage{position:relative;z-index:2;pointer-events:none}
+  .stage section{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:0 clamp(24px,6vw,120px);
+  }
+  .stage a,.stage button{pointer-events:auto}
+
+  /* header */
+  header{
+    position:fixed;z-index:5;top:0;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px clamp(24px,6vw,60px);
+    pointer-events:none;
+  }
+  .brand{
+    font-family:var(--display);font-weight:600;letter-spacing:.18em;
+    font-size:14px;text-transform:uppercase;
+    display:flex;align-items:center;gap:10px;pointer-events:auto;
+  }
+  .brand .dot{width:9px;height:9px;border-radius:50%;
+    background:linear-gradient(135deg,var(--ice),var(--pink));
+    box-shadow:0 0 18px var(--violet);}
+  nav.menu{display:flex;gap:30px;pointer-events:auto}
+  nav.menu a{font-size:13px;letter-spacing:.06em;color:rgba(246,244,255,.65);transition:color .3s}
+  nav.menu a:hover{color:var(--white)}
+  .menu-pill{display:none;pointer-events:auto;
+    padding:9px 18px;border:1px solid rgba(184,169,255,.35);
+    border-radius:999px;font-size:13px;letter-spacing:.05em;
+    backdrop-filter:blur(8px);background:rgba(20,18,40,.4);}
+
+  /* hero */
+  .eyebrow{
+    font-family:var(--display);font-size:12px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--ice);margin-bottom:26px;
+    opacity:0;animation:rise 1s .2s forwards;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:500;
+    font-size:clamp(46px,8.5vw,120px);
+    line-height:.96;letter-spacing:-.02em;
+    max-width:14ch;
+    text-shadow:0 4px 60px rgba(159,212,255,.25);
+  }
+  h1 .line{display:block;overflow:hidden}
+  h1 .line span{display:block;opacity:0;transform:translateY(110%);
+    animation:reveal 1.1s cubic-bezier(.2,.7,.2,1) forwards}
+  h1 .line:nth-child(1) span{animation-delay:.35s}
+  h1 .line:nth-child(2) span{animation-delay:.5s}
+  h1 .gloss{
+    background:linear-gradient(100deg,var(--violet),var(--ice),var(--pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{
+    margin-top:34px;max-width:46ch;font-weight:300;
+    font-size:clamp(15px,1.5vw,18px);line-height:1.6;
+    color:rgba(246,244,255,.72);
+    opacity:0;animation:rise 1s .8s forwards;
+  }
+  .cta-row{margin-top:46px;display:flex;gap:16px;flex-wrap:wrap;
+    opacity:0;animation:rise 1s 1s forwards;}
+  .btn{
+    font-family:var(--display);font-size:14px;letter-spacing:.03em;
+    padding:15px 30px;border-radius:999px;transition:transform .35s, box-shadow .35s;
+  }
+  .btn-primary{
+    background:linear-gradient(120deg,var(--violet),var(--ice));
+    color:#0a0818;font-weight:600;
+    box-shadow:0 8px 40px rgba(159,212,255,.35);
+  }
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 50px rgba(184,169,255,.5)}
+  .btn-ghost{border:1px solid rgba(246,244,255,.25);color:var(--white)}
+  .btn-ghost:hover{border-color:var(--ice);transform:translateY(-3px)}
+
+  /* narrative chapters */
+  .chapter{max-width:560px}
+  .chapter .num{
+    font-family:var(--display);font-size:12px;letter-spacing:.3em;
+    color:var(--pink);margin-bottom:18px;
+  }
+  .chapter h2{
+    font-family:var(--display);font-weight:500;
+    font-size:clamp(30px,4.5vw,56px);line-height:1.04;letter-spacing:-.01em;
+    margin-bottom:20px;
+  }
+  .chapter p{font-weight:300;line-height:1.65;color:rgba(246,244,255,.7);
+    font-size:clamp(15px,1.5vw,17px)}
+  .chapter.right{margin-left:auto;text-align:right}
+
+  /* footer */
+  footer.fin{
+    z-index:2;position:relative;text-align:center;
+    padding:120px 24px 60px;
+  }
+  footer.fin h2{font-family:var(--display);font-weight:500;
+    font-size:clamp(34px,6vw,80px);letter-spacing:-.02em;margin-bottom:30px}
+  footer.fin .legal{margin-top:80px;font-size:12px;letter-spacing:.08em;
+    color:rgba(246,244,255,.4)}
+
+  /* sound toggle pinned bottom-left */
+  .sound{
+    position:fixed;z-index:6;left:clamp(20px,4vw,40px);bottom:30px;
+    width:54px;height:54px;border-radius:50%;pointer-events:auto;
+    border:1px solid rgba(184,169,255,.35);background:rgba(13,11,28,.5);
+    backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;
+    gap:3px;transition:border-color .3s, transform .3s;
+  }
+  .sound:hover{border-color:var(--ice);transform:scale(1.06)}
+  .sound i{display:block;width:3px;border-radius:2px;background:var(--ice);
+    animation:eq 1.1s ease-in-out infinite}
+  .sound i:nth-child(1){height:10px;animation-delay:0s}
+  .sound i:nth-child(2){height:18px;animation-delay:.2s}
+  .sound i:nth-child(3){height:13px;animation-delay:.4s}
+  .sound.muted i{animation-play-state:paused;height:6px;opacity:.4}
+
+  /* scroll hint */
+  .scrollhint{position:fixed;z-index:5;right:clamp(20px,4vw,40px);bottom:34px;
+    writing-mode:vertical-rl;font-family:var(--display);font-size:11px;
+    letter-spacing:.3em;text-transform:uppercase;color:rgba(246,244,255,.45);
+    pointer-events:none}
+
+  /* custom liquid cursor */
+  .cursor{position:fixed;top:0;left:0;z-index:50;pointer-events:none;
+    transform:translate(-50%,-50%);mix-blend-mode:screen}
+  .cursor .ring{position:absolute;top:50%;left:50%;border-radius:50%;
+    transform:translate(-50%,-50%)}
+  .ring.outer{width:34px;height:34px;border:1px solid rgba(159,212,255,.55);
+    transition:width .3s,height .3s,opacity .3s}
+  .ring.inner{width:22px;height:22px;
+    border:1px dashed rgba(243,181,255,.7);animation:spin 4s linear infinite}
+  .core{position:absolute;top:50%;left:50%;width:5px;height:5px;
+    transform:translate(-50%,-50%) rotate(45deg);
+    background:var(--white);box-shadow:0 0 10px var(--ice)}
+  body.hovering .ring.outer{width:50px;height:50px;opacity:.5}
+
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  @keyframes eq{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+  @keyframes reveal{to{opacity:1;transform:translateY(0)}}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  .reveal-up{opacity:0;transform:translateY(40px);transition:opacity 1s, transform 1s}
+  .reveal-up.in{opacity:1;transform:translateY(0)}
+
+  @media (max-width:760px){
+    nav.menu{display:none}
+    .menu-pill{display:block}
+    .chapter.right{text-align:left;margin-left:0}
+    .scrollhint{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+    .reveal-up{opacity:1;transform:none}
+    body{cursor:auto}.cursor{display:none}
+  }
+</style>
+</head>
+<body>
+  <div id="scene"></div>
+
+  <header>
+    <div class="brand"><span class="dot"></span>Liquidity</div>
+    <nav class="menu">
+      <a href="#signals">Signals</a>
+      <a href="#auto">Automation</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#advisor">Advisor</a>
+    </nav>
+    <button class="menu-pill">Menu</button>
+  </header>
+
+  <div class="stage">
+    <!-- HERO -->
+    <section id="hero">
+      <div class="eyebrow">AI market intelligence</div>
+      <h1>
+        <span class="line"><span>Markets,</span></span>
+        <span class="line"><span class="gloss">rendered.</span></span>
+      </h1>
+      <p class="sub">Capital is a fluid. We model the flow — signals, execution, analytics, and allocation, drawn from the same living current of market data.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#signals">Reimagine your portfolio</a>
+        <a class="btn btn-ghost" href="#auto">See it move</a>
+      </div>
+    </section>
+
+    <!-- CHAPTER 1: SIGNALS -->
+    <section id="signals">
+      <div class="chapter reveal-up">
+        <div class="num">01 — Signals</div>
+        <h2>The pattern, before it forms.</h2>
+        <p>The network reads order flow the moment it shifts. Particles snap into candlesticks; the model marks the setups worth your attention and stays quiet on the rest.</p>
+      </div>
+    </section>
+
+    <!-- CHAPTER 2: AUTOMATION -->
+    <section id="auto">
+      <div class="chapter right reveal-up">
+        <div class="num">02 — Automation</div>
+        <h2>Conviction, executed.</h2>
+        <p>Route a strategy and the flow self-organizes — entries, sizing, exits, all running between nodes while you sleep. You set the rules; the current does the work.</p>
+      </div>
+    </section>
+
+    <!-- CHAPTER 3: ANALYTICS -->
+    <section id="analytics">
+      <div class="chapter reveal-up">
+        <div class="num">03 — Analytics</div>
+        <h2>Every angle, refracted.</h2>
+        <p>The glass breaks one market into many views — exposure, drawdown, correlation — each panel a facet of the same truth, lit from a different side.</p>
+      </div>
+    </section>
+
+    <!-- CHAPTER 4: ADVISOR -->
+    <section id="advisor">
+      <div class="chapter right reveal-up">
+        <div class="num">04 — Advisor</div>
+        <h2>Balance you can feel.</h2>
+        <p>Thousands of points converge into one breathing allocation. The advisor rebalances as the current drifts, holding your portfolio at its center of gravity.</p>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="fin">
+      <h2 class="reveal-up">Step into the flow.</h2>
+      <a class="btn btn-primary" href="#hero">Open an account</a>
+      <div class="legal">Liquidity — a concept prototype. Not investment advice.</div>
+    </footer>
+  </div>
+
+  <button class="sound muted" id="sound" aria-label="Toggle ambient sound">
+    <i></i><i></i><i></i>
+  </button>
+  <div class="scrollhint">Scroll</div>
+
+  <div class="cursor" id="cursor">
+    <span class="ring outer"></span>
+    <span class="ring inner"></span>
+    <span class="core"></span>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ---------- Custom liquid cursor ---------- */
+const cursor = document.getElementById('cursor');
+let cx=window.innerWidth/2, cy=window.innerHeight/2, tx=cx, ty=cy;
+window.addEventListener('mousemove', e=>{ tx=e.clientX; ty=e.clientY; });
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+});
+(function loop(){
+  cx+=(tx-cx)*.18; cy+=(ty-cy)*.18;
+  cursor.style.transform=`translate(${cx}px,${cy}px)`;
+  requestAnimationFrame(loop);
+})();
+
+/* ---------- Sound toggle (ambient pad via WebAudio) ---------- */
+const soundBtn=document.getElementById('sound');
+let audioCtx, gain, playing=false;
+soundBtn.addEventListener('click',()=>{
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    gain=audioCtx.createGain(); gain.gain.value=0; gain.connect(audioCtx.destination);
+    [110,164.81,220].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const g=audioCtx.createGain(); g.gain.value=0.06/(i+1);
+      o.connect(g); g.connect(gain); o.start();
+    });
+  }
+  playing=!playing;
+  gain.gain.linearRampToValueAtTime(playing?0.5:0, audioCtx.currentTime+0.6);
+  soundBtn.classList.toggle('muted',!playing);
+});
+
+/* ---------- Scroll reveal ---------- */
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+},{threshold:.3});
+document.querySelectorAll('.reveal-up').forEach(el=>io.observe(el));
+
+/* ---------- WebGL scene ---------- */
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x070611,0.055);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,100);
+camera.position.set(0,0,9);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+document.getElementById('scene').appendChild(renderer.domElement);
+
+/* lights */
+scene.add(new THREE.AmbientLight(0x8a7fff,0.6));
+const l1=new THREE.PointLight(0x9fd4ff,2.2,40); l1.position.set(6,5,6); scene.add(l1);
+const l2=new THREE.PointLight(0xf3b5ff,1.8,40); l2.position.set(-7,-4,4); scene.add(l2);
+const l3=new THREE.PointLight(0xb8a9ff,1.5,40); l3.position.set(0,6,-6); scene.add(l3);
+
+/* ---- particle network (capital flow) ---- */
+const COUNT=2600;
+const pGeo=new THREE.BufferGeometry();
+const pos=new Float32Array(COUNT*3);
+const seed=new Float32Array(COUNT);
+const col=new Float32Array(COUNT*3);
+const palette=[new THREE.Color(0xb8a9ff),new THREE.Color(0x9fd4ff),new THREE.Color(0xf3b5ff)];
+for(let i=0;i<COUNT;i++){
+  const r=4+Math.random()*7, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+  pos[i*3]=r*Math.sin(p)*Math.cos(t);
+  pos[i*3+1]=(r*Math.sin(p)*Math.sin(t))*0.6;
+  pos[i*3+2]=r*Math.cos(p);
+  seed[i]=Math.random()*100;
+  const c=palette[i%3]; col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+}
+pGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+pGeo.setAttribute('color',new THREE.BufferAttribute(col,3));
+const sprite=(()=>{ const c=document.createElement('canvas');c.width=c.height=64;
+  const g=c.getContext('2d');const gr=g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.4,'rgba(255,255,255,.5)');
+  gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c); })();
+const pMat=new THREE.PointsMaterial({size:0.085,map:sprite,vertexColors:true,
+  transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.9});
+const points=new THREE.Points(pGeo,pMat);
+scene.add(points);
+
+/* connecting lines for "network" feel */
+const lineGeo=new THREE.BufferGeometry();
+const linePos=new Float32Array(COUNT*3);
+const lineMat=new THREE.LineBasicMaterial({color:0x6f7bd6,transparent:true,opacity:.12,blending:THREE.AdditiveBlending});
+lineGeo.setAttribute('position',new THREE.BufferAttribute(linePos,3));
+const lines=new THREE.LineSegments(lineGeo,lineMat);
+scene.add(lines);
+
+/* ---- transparent glass prism (hero centerpiece) ---- */
+const glassMat=new THREE.MeshPhysicalMaterial({
+  color:0xffffff, metalness:0, roughness:0.05,
+  transmission:1, thickness:2.2, ior:1.4,
+  clearcoat:1, clearcoatRoughness:0.05,
+  envMapIntensity:1.4, transparent:true, opacity:1,
+  reflectivity:0.6, side:THREE.DoubleSide
+});
+const glass=new THREE.Mesh(new THREE.IcosahedronGeometry(2.1,0),glassMat);
+scene.add(glass);
+const glassWire=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(2.12,0),
+  new THREE.MeshBasicMaterial({color:0x9fd4ff,wireframe:true,transparent:true,opacity:.18})
+);
+scene.add(glassWire);
+
+/* faux env reflections so transmission has something to bend */
+const envScene=new THREE.Scene();
+for(let i=0;i<40;i++){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),
+    new THREE.MeshBasicMaterial({color:[0xb8a9ff,0x9fd4ff,0xf3b5ff][i%3]}));
+  m.position.set((Math.random()-.5)*30,(Math.random()-.5)*30,(Math.random()-.5)*30);
+  envScene.add(m);
+}
+const cubeCam=new THREE.CubeCamera(0.1,100,new THREE.WebGLCubeRenderTarget(256));
+envScene.add(cubeCam);
+cubeCam.update(renderer,envScene);
+glassMat.envMap=cubeCam.renderTarget.texture;
+
+/* ---- interaction / scroll state ---- */
+let pointer={x:0,y:0};
+window.addEventListener('mousemove',e=>{
+  pointer.x=(e.clientX/innerWidth)*2-1;
+  pointer.y=-(e.clientY/innerHeight)*2+1;
+});
+let scrollN=0;
+window.addEventListener('scroll',()=>{
+  scrollN=window.scrollY/(document.body.scrollHeight-innerHeight||1);
+});
+
+const basePos=pos.slice();
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+
+  /* particle flow + cursor attraction */
+  const arr=pGeo.attributes.position.array;
+  const mxWorld=pointer.x*6, myWorld=pointer.y*4;
+  let lp=0;
+  for(let i=0;i<COUNT;i++){
+    const s=seed[i];
+    let x=basePos[i*3]+Math.sin(t*0.3+s)*0.4;
+    let y=basePos[i*3+1]+Math.cos(t*0.25+s)*0.4;
+    let z=basePos[i*3+2]+Math.sin(t*0.2+s*0.5)*0.4;
+    // gentle pull toward cursor
+    const dx=mxWorld-x, dy=myWorld-y, d2=dx*dx+dy*dy+4;
+    const pull=0.6/d2;
+    x+=dx*pull; y+=dy*pull;
+    arr[i*3]=x; arr[i*3+1]=y; arr[i*3+2]=z;
+    // sparse network lines between near-sequential points
+    if(i%6===0 && i+6<COUNT){
+      linePos[lp++]=x; linePos[lp++]=y; linePos[lp++]=z;
+      linePos[lp++]=basePos[(i+6)*3]; linePos[lp++]=basePos[(i+6)*3+1]; linePos[lp++]=basePos[(i+6)*3+2];
+    }
+  }
+  pGeo.attributes.position.needsUpdate=true;
+  lineGeo.attributes.position.needsUpdate=true;
+  lineGeo.setDrawRange(0,lp/3);
+
+  points.rotation.y=t*0.04;
+  lines.rotation.y=t*0.04;
+
+  /* glass: morph + drift across chapters */
+  glass.rotation.x=t*0.15+scrollN*1.5;
+  glass.rotation.y=t*0.2+scrollN*2.5;
+  glassWire.rotation.copy(glass.rotation);
+  const driftX=Math.sin(scrollN*Math.PI*2)*2.5;
+  const scaleS=1+Math.sin(scrollN*Math.PI)*0.25;
+  glass.position.x=driftX; glassWire.position.x=driftX;
+  glass.scale.setScalar(scaleS); glassWire.scale.setScalar(scaleS);
+
+  /* parallax camera */
+  camera.position.x+=(pointer.x*0.8-camera.position.x)*0.04;
+  camera.position.y+=(pointer.y*0.6-camera.position.y)*0.04;
+  camera.position.z=9-scrollN*1.5;
+  camera.lookAt(driftX*0.4,0,0);
+
+  renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
