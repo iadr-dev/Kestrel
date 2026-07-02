@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./kestrel-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://kestrel:kestrel@postgres:5432/kestrel
+    # Redis is provided by Upstash (UPSTASH_REDIS_REST_URL / _TOKEN in .env).
+    env_file:
+      - ./kestrel-backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./kestrel-backend/data:/app/data
+      - duckdb_data:/app/market_data
+
+  frontend:
+    build: ./kestrel-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kestrel
+      POSTGRES_USER: kestrel
+      POSTGRES_PASSWORD: kestrel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kestrel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  duckdb_data:
