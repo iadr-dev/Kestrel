@@ -1,0 +1,17 @@
+[
+  {"from": "2330", "from_name": "台積電", "to": "AAPL", "to_name": "Apple", "type": "supplies", "confidence": "high", "revenue_pct": 25},
+  {"from": "2330", "from_name": "台積電", "to": "NVDA", "to_name": "NVIDIA", "type": "supplies", "confidence": "high", "revenue_pct": 15},
+  {"from": "ASML", "from_name": "ASML", "to": "2330", "to_name": "台積電", "type": "supplies", "confidence": "high", "revenue_pct": null},
+  {"from": "2454", "from_name": "聯發科", "to": "2330", "to_name": "台積電", "type": "customer", "confidence": "high", "revenue_pct": null},
+  {"from": "3711", "from_name": "日月光", "to": "2330", "to_name": "台積電", "type": "customer", "confidence": "high", "revenue_pct": null},
+  {"from": "2303", "from_name": "聯電", "to": "2330", "to_name": "台積電", "type": "competes", "confidence": "high", "revenue_pct": null},
+  {"from": "2317", "from_name": "鴻海", "to": "AAPL", "to_name": "Apple", "type": "supplies", "confidence": "high", "revenue_pct": 50},
+  {"from": "2317", "from_name": "鴻海", "to": "NVDA", "to_name": "NVIDIA", "type": "supplies", "confidence": "medium", "revenue_pct": null},
+  {"from": "2382", "from_name": "廣達", "to": "NVDA", "to_name": "NVIDIA", "type": "supplies", "confidence": "high", "revenue_pct": null},
+  {"from": "2382", "from_name": "廣達", "to": "META", "to_name": "Meta", "type": "supplies", "confidence": "medium", "revenue_pct": null},
+  {"from": "3034", "from_name": "聯詠", "to": "2330", "to_name": "台積電", "type": "customer", "confidence": "high", "revenue_pct": null},
+  {"from": "2308", "from_name": "台達電", "to": "NVDA", "to_name": "NVIDIA", "type": "supplies", "confidence": "medium", "revenue_pct": null},
+  {"from": "2308", "from_name": "台達電", "to": "TSLA", "to_name": "Tesla", "type": "supplies", "confidence": "medium", "revenue_pct": null},
+  {"from": "6488", "from_name": "環球晶", "to": "2330", "to_name": "台積電", "type": "supplies", "confidence": "high", "revenue_pct": null},
+  {"from": "2412", "from_name": "中華電", "to": "2330", "to_name": "台積電", "type": "customer", "confidence": "low", "revenue_pct": null}
+]
