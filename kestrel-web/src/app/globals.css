@@ -1,0 +1,427 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Kestrel Design System — Premium 氛圍感 Tokens */
+:root {
+  --background: #f6efe3;
+  --foreground: #2a1a0e;
+  --surface: #fffbf4;
+  --raised: #f0e7d4;
+  --muted: #8b7355;
+  --border: rgba(139, 115, 85, 0.15);
+  --signal: #e87430;
+  --up: #b8341c;
+  --down: #4a7c59;
+  --accent: #e87430;
+  --legendary: #d4a017;
+  --glow: rgba(232, 116, 48, 0.08);
+  --card-shadow: 0 2px 12px rgba(60, 30, 10, 0.06);
+  --card-shadow-hover: 0 8px 30px rgba(60, 30, 10, 0.1);
+  --nav-bg: transparent;
+  --nav-active: #2a1a0e;
+  --nav-active-text: #fffbf4;
+}
+
+.dark {
+  --background: #0d0b09;
+  --foreground: #f0e9db;
+  --surface: #171412;
+  --raised: #1e1b18;
+  --muted: #7a7068;
+  --border: rgba(255,255,255,0.06);
+  --signal: #ffd83d;
+  --up: #ff5f4a;
+  --down: #5ee885;
+  --accent: #ffd83d;
+  --legendary: #ffd83d;
+  --glow: rgba(255, 216, 61, 0.08);
+  --card-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  --card-shadow-hover: 0 12px 40px rgba(0,0,0,0.4);
+  --nav-bg: transparent;
+  --nav-active: #ffd83d;
+  --nav-active-text: #0d0b09;
+}
+
+/* Extended palette — chart series, badges, gradients */
+:root, .dark {
+  --chart-1: #ffd83d;
+  --chart-2: #22c55e;
+  --chart-3: #e87430;
+  --chart-4: #706BA3;
+  --chart-5: #899D75;
+
+  --badge-semiconductor: #6366f1;
+  --badge-ai: #8b5cf6;
+  --badge-finance: #0ea5e9;
+  --badge-biotech: #10b981;
+  --badge-auto: #f59e0b;
+  --badge-energy: #ef4444;
+
+  --signal-up: #22c55e;
+  --signal-down: #ef4444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-signal: var(--signal);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-accent: var(--accent);
+  --color-legendary: var(--legendary);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-text: var(--nav-active-text);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-badge-semiconductor: var(--badge-semiconductor);
+  --color-badge-ai: var(--badge-ai);
+  --color-badge-finance: var(--badge-finance);
+  --color-badge-biotech: var(--badge-biotech);
+  --color-badge-auto: var(--badge-auto);
+  --color-badge-energy: var(--badge-energy);
+  --color-signal-up: var(--signal-up);
+  --color-signal-down: var(--signal-down);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Ensure smooth transitions on theme switch */
+html {
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Keyboard-only focus ring for a11y. :focus-visible shows it only for keyboard
+   navigation (not mouse clicks), so it aids accessibility without visual noise. */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+input:focus-visible,
+textarea:focus-visible {
+  outline: none; /* inputs use their own focus:border-signal styling */
+}
+
+/* Custom scrollbar for dark theme */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Framer motion reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Streaming-text reveal — newly arrived tokens fade + rise in, like claude.ai's
+   gradual character appearance. Applied per-chunk during agent response streaming. */
+@keyframes stream-fade-in {
+  from { opacity: 0; filter: blur(4px); transform: translateY(1px); }
+  to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+.stream-chunk {
+  display: inline;
+  animation: stream-fade-in 0.45s ease-out;
+}
+
+/* Tier-flow supply-chain lines (產業內部結構 關聯網絡 swimlane) — draw the
+   stroke in on mount, then a slow dash drift to suggest direction of flow. */
+@keyframes flow-draw {
+  from { stroke-dashoffset: var(--flow-len, 200); }
+  to   { stroke-dashoffset: 0; }
+}
+.flow-line {
+  stroke-dasharray: var(--flow-len, 200);
+  animation: flow-draw 0.7s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-line { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Stock marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Voice dot wave animation (Claude.ai style) */
+@keyframes dot-wave-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.voice-dots-wave {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.voice-dots-wave::after {
+  content: "· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ";
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  animation: dot-wave-scroll 4s linear infinite;
+}
+
+/* Voice mode bar animations (hover on voice icon) — uses scaleY transform */
+@keyframes voice-bar-short {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+@keyframes voice-bar-medium {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+@keyframes voice-bar-tall {
+  0%, 100% { transform: scaleY(0.7); }
+  50% { transform: scaleY(1); }
+}
+.voice-bar {
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+.group:hover .voice-bar-1 { animation: voice-bar-short 0.6s ease-in-out infinite; }
+.group:hover .voice-bar-2 { animation: voice-bar-medium 0.5s ease-in-out infinite; animation-delay: 0.1s; }
+.group:hover .voice-bar-3 { animation: voice-bar-tall 0.7s ease-in-out infinite; animation-delay: 0.05s; }
+.group:hover .voice-bar-4 { animation: voice-bar-medium 0.55s ease-in-out infinite; animation-delay: 0.15s; }
+.group:hover .voice-bar-5 { animation: voice-bar-tall 0.65s ease-in-out infinite; animation-delay: 0.08s; }
+.group:hover .voice-bar-6 { animation: voice-bar-medium 0.5s ease-in-out infinite; animation-delay: 0.2s; }
+.group:hover .voice-bar-7 { animation: voice-bar-short 0.6s ease-in-out infinite; animation-delay: 0.12s; }
+
+/* Kestrel pet bird wing animations */
+@keyframes wing-flap-left {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(-30deg); }
+}
+@keyframes wing-flap-right {
+  0%, 100% { transform: rotate(10deg); }
+  50% { transform: rotate(30deg); }
+}
+.animate-wing-left {
+  animation: wing-flap-left 0.4s ease-in-out infinite;
+  transform-origin: 26px 36px;
+}
+.animate-wing-right {
+  animation: wing-flap-right 0.4s ease-in-out infinite;
+  transform-origin: 38px 36px;
+}
+
+/* Heatmap breathing animation for big movers */
+@keyframes breathe {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+}
+
+/* === Premium 氛圍感 Utility Classes === */
+
+/* Atmospheric card with glow */
+.card-atmospheric {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.card-atmospheric::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--glow), transparent 60%);
+  pointer-events: none;
+}
+.card-atmospheric:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* Gradient blob decoration */
+.gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+.gradient-blob-signal {
+  background: var(--signal);
+}
+.gradient-blob-up {
+  background: var(--up);
+}
+.gradient-blob-down {
+  background: var(--down);
+}
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--raised) 25%, var(--border) 50%, var(--raised) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Subtle float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Glow pulse for accent elements */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow); }
+  50% { box-shadow: 0 0 20px 4px var(--glow); }
+}
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* Live re-ranking — the ▲N/▼N rank-change badge pops in then fades out after a
+   couple seconds, so a row that just moved is briefly flagged without leaving
+   permanent clutter in the table. */
+@keyframes rank-delta {
+  0% { opacity: 0; transform: translateY(2px); }
+  15% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-rank-delta {
+  animation: rank-delta 2.4s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rank-delta { animation: none; opacity: 1; }
+}
+
+/* Gacha reveal — suspense shake while the capsule "shakes" before opening */
+@keyframes gacha-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  20% { transform: translateX(-3px) rotate(-4deg); }
+  40% { transform: translateX(3px) rotate(4deg); }
+  60% { transform: translateX(-2px) rotate(-3deg); }
+  80% { transform: translateX(2px) rotate(3deg); }
+}
+.animate-gacha-shake {
+  animation: gacha-shake 0.45s ease-in-out infinite;
+}
+
+/* Gacha reveal — payoff pop when the pet appears */
+@keyframes gacha-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-gacha-pop {
+  animation: gacha-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Gift-box BURST — the box jolts then "explodes" open (scale up + fade) so the
+   pet behind it is revealed. Paired with ray + confetti bursts below. */
+@keyframes gift-burst {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  35% { transform: scale(0.82) rotate(-3deg); opacity: 1; }
+  55% { transform: scale(1.35) rotate(2deg); opacity: 1; }
+  100% { transform: scale(2.6) rotate(8deg); opacity: 0; }
+}
+.animate-gift-burst {
+  animation: gift-burst 0.6s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+/* Radial light rays flashing out from behind the opening box. */
+@keyframes ray-burst {
+  0% { transform: scale(0); opacity: 0; }
+  40% { opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-ray-burst {
+  animation: ray-burst 0.7s ease-out forwards;
+}
+
+/* Confetti pieces flung outward — each piece sets its own --tx/--ty/--rot. */
+@keyframes confetti-fly {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(0.4); opacity: 0; }
+}
+.animate-confetti-fly {
+  animation: confetti-fly 0.85s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+}
+
+/* Idle wobble for the closed box before the user opens it. */
+@keyframes gift-idle {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-6px) rotate(1.5deg); }
+}
+.animate-gift-idle {
+  animation: gift-idle 2.2s ease-in-out infinite;
+}
+
+/* Sparkline container */
+.sparkline-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 100%;
+}
+
+/* Pressure bar (buy/sell ratio) */
+.pressure-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pressure-bar-buy {
+  background: var(--up);
+  transition: width 0.3s ease;
+}
+.pressure-bar-sell {
+  background: var(--down);
+  transition: width 0.3s ease;
+}

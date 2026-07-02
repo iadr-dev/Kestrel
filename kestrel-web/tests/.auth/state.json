@@ -1,0 +1,22 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "kestrel_user",
+          "value": "{\"id\":\"test-user\",\"email\":\"playwright-test@kestrel.dev\",\"display_name\":\"Playwright Test\",\"tier\":\"pro\"}"
+        },
+        {
+          "name": "kestrel_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3RAa2VzdHJlbC5kZXYiLCJ0aWVyIjoicHJvIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc4MTU5NzM3OCwiZXhwIjoxNzgxNjAwOTc4fQ.LFaMgz-cPhZ3wRWS9V9d_HVXaJnEbJqvtJ8Xlvml6Sg"
+        },
+        {
+          "name": "kestrel_refresh_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwbGF5d3JpZ2h0LXRlc3RAa2VzdHJlbC5kZXYiLCJ0aWVyIjoicHJvIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3ODE1OTczNzgsImV4cCI6MTc4MjIwMjE3OH0.7Zjd-RaL5pURuqpQdniG7yEx-duGGOI_OtTuPvlyeQc"
+        }
+      ]
+    }
+  ]
+}
