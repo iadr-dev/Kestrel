@@ -56,7 +56,7 @@ The system auto-selects the appropriate framework based on query complexity.
                              ▼         └───────┬────────┘
                     ┌──────────────┐           │
                     │ Tool Registry│           ▼
-                    │ (87 tools)   │  ┌──────────────────┐
+                    │ (68 tools)   │  ┌──────────────────┐
                     │ Skill tools  │  │ Synthesis        │
                     │ loaded on    │  │ (combines all    │
                     │ demand       │  │  agent results)  │
@@ -198,12 +198,16 @@ Use when research is SEQUENTIAL (news informs data analysis informs risk).
 app/agent/
 ├── core.py                  # AgentService — main orchestrator (process_stream entry point)
 ├── loop.py                  # ReAct agent loop (Think → Tool → Observe → Repeat)
-├── router.py                # Multi-model LLM router (Claude/OpenAI/Gemini/OpenRouter)
-│                            #   ├─ _stream_claude() — native Anthropic SDK
-│                            #   ├─ _stream_openai() — OpenAI-compat (GPT/Gemini/OR)
+├── router.py                # Multi-model LLM router (Claude/OpenAI/Gemini/OpenRouter/NVIDIA/ChatAnywhere)
+│                            #   ├─ _stream_claude() — native Anthropic SDK; enables
+│                            #   │    extended thinking for claude-(opus|sonnet|haiku)-4*
+│                            #   │    (streams thinking_delta + replays the signed
+│                            #   │    thinking block on tool-use turns)
+│                            #   ├─ _stream_openai() — OpenAI-compat (GPT/Gemini/OR/NVIDIA);
+│                            #   │    surfaces reasoning_content/reasoning as thinking_delta
 │                            #   ├─ _to_claude_messages() — format translation at boundary
 │                            #   ├─ chat() — convenience for subagent/team calls
-│                            #   └─ fallback chains + per-user API key override
+│                            #   └─ fallback chains + per-user API key override (BYOK)
 ├── events.py                # SSE event types (10 event dataclasses + serialize_event)
 ├── observe.py               # Per-request tracing (TurnTrace, LLMTrace DB model)
 │
@@ -229,23 +233,35 @@ app/agent/
 │   ├── models.py            # ChatSession ORM model
 │   └── repository.py        # CRUD: create, list, resume, delete, handoff
 │
-├── tools/                   # 87 tools (13 files)
+├── tools/                   # 68 tools (16 files)
 │   ├── registry.py          # ToolRegistry — register, get_schemas, execute, get()
 │   ├── base.py              # BaseTool protocol + ToolResult dataclass
-│   ├── market.py            # FinMind: price, index, institutional, revenue, macro, screener (6)
-│   ├── institutional.py     # FinMind: margin, shareholding, main force, gov bank (4)
-│   ├── fundamental.py       # FinMind: financials, dividend, market value (3)
+│   ├── ask_user.py          # ask_user — pause loop for a clarification (1)
+│   ├── market.py            # FinMind: price, index, adv/decline, institutional flow,
+│   │                        #   foreign-by-industry, revenue, macro, screener, intl,
+│   │                        #   day-trading, futures-after-hours (11)
+│   ├── institutional.py     # FinMind: margin, shareholding, main force, gov bank,
+│   │                        #   short-sale balance, securities lending, block trade,
+│   │                        #   margin maintenance (8)
+│   ├── fundamental.py       # FinMind: financials, dividend, market value (4)
 │   ├── analysis.py          # DuckDB: indicators (11 formulas), scoring (2)
-│   ├── twse_tools.py        # TWSE/TPEx/TAIFEX: realtime, notice, disposal, ETF, options... (16)
+│   ├── twse_tools.py        # TWSE/TPEx/TAIFEX: realtime, notice, disposal, ETF, active
+│   │                        #   ETF holders, shareholder gift, options, backtest, ESG,
+│   │                        #   warrant, odd-lot, dividend schedule... (20)
 │   ├── tdcc_tools.py        # TDCC: shareholding distribution, director, weekly, monthly (4)
 │   ├── mops_tools.py        # MOPS: announcements, treasury, conferences, director (4)
 │   ├── rankings_tools.py    # TWSE official: volume rankings, institutional rankings, margin (3)
 │   ├── yfinance_tools.py    # yfinance: target, calendar, holders, history, financials,
 │   │                        #           search, screener, sector, news, peers (10)
-│   ├── user_tools.py        # User: ask_user, schedule_alert, set_preference (3)
+│   ├── user_tools.py        # User: schedule_alert, set_preference (2)
 │   ├── memory_tools.py      # Memory: recall, learn, forget (3)
-│   ├── render.py            # Rich cards: stock_card, comparison_table, score_gauge, chart, alert_confirm, supply_chain, theme_overview, kline_chart, institutional_flow, financial_statement, dividend_history, short_position, options_sentiment, esg_scorecard (14)
-│   ├── web_search.py        # Web: search (Brave API), fetch_page (4)
+│   ├── render.py            # Rich cards (17): stock_card, comparison_table, score_gauge,
+│   │                        #   chart, alert_confirm, supply_chain, theme_overview,
+│   │                        #   kline_chart, institutional_flow, financial_statement,
+│   │                        #   dividend_history, short_position, options_sentiment,
+│   │                        #   esg_scorecard, etf_profile, active_etf_holders,
+│   │                        #   shareholder_gift
+│   ├── web_search.py        # Web: search (Brave API), fetch_page (2)
 │   └── research.py          # Deep research: multi-angle parallel search + synthesis (1)
 │
 ├── skills/                  # Skill system — intent → specialized instructions + tool filtering
@@ -357,13 +373,21 @@ LLMRouter:
   │   ├─ Tool schemas: OpenAI format (canonical) → Claude input_schema
   │   └─ Tool results: role:"tool" → role:"user" + tool_result blocks
   │
-  ├─ Per-User API Key Override:
-  │   User stores custom keys in SemanticMemory
+  ├─ Extended Thinking (live reasoning timeline):
+  │   ├─ Claude opus/sonnet/haiku 4.x → thinking enabled (budget 2048);
+  │   │   streams thinking_delta; the signed thinking block is replayed
+  │   │   in the assistant turn so the tool-use loop doesn't 400
+  │   └─ OpenAI-compat reasoning models (DeepSeek-R, OpenRouter :thinking)
+  │       → reasoning_content / reasoning surfaced as thinking_delta
+  │
+  ├─ Per-User API Key Override (BYOK):
+  │   User stores custom keys in SemanticMemory (custom_api_keys)
   │   → Agent uses user's key instead of system key
+  │   → also lifts the daily chat limit (see entitlements)
   │
   ├─ Fallback Chains:
   │   Claude → Haiku → Gemini Flash → OpenRouter/free
-  │   (auto-fallback on provider errors)
+  │   (auto-fallback on provider errors; free primaries never escalate to paid)
   │
   └─ Model Selection by Role:
       ├─ Intent classifier: Gemini Flash (~200 tokens, fast)
@@ -510,23 +534,22 @@ User message arrives
 
 ## Tool & API Inventory
 
-### Agent Tools (87 tools — available to LLM during chat)
+### Agent Tools (68 tools — available to LLM during chat)
 
 | Category | Tools | Data Source |
 |----------|-------|-------------|
-| **Market Data** | get_stock_price, get_market_index, get_macro_data | FinMind |
-| **Institutional** | get_institutional_flow, get_margin_data, get_shareholding, get_main_force, get_government_bank | FinMind |
-| **Fundamental** | get_revenue, get_financials, get_dividend, get_market_value | FinMind |
-| **Technical** | get_indicators, get_score | DuckDB (computed) |
-| **Screener** | screen_stocks | DuckDB + FinMind + yfinance |
-| **TWSE Direct** | get_realtime_quote, get_notice_stocks, get_disposal_stocks, get_twse_institutional, get_futures_position, get_company_profile, get_supply_chain, get_theme_stocks, get_etf_data, get_otc_stock, get_put_call_ratio, get_options_analytics, get_backtest_result, get_company_esg, get_warrant_info, get_market_holidays | TWSE/TPEx/TAIFEX API |
-| **TDCC** | get_shareholding_distribution, get_director_custody, get_weekly_balance, get_monthly_custody_change | TDCC OpenAPI |
-| **MOPS** | get_announcements, get_treasury_stock, get_investor_conferences, get_director_holdings | MOPS (公開資訊觀測站) |
-| **Rankings** | get_stock_rankings, get_institutional_rankings, get_margin_rankings | TWSE (official; replaced HiStock — Cloudflare-blocked) |
-| **yfinance** | get_analyst_target, get_earnings_calendar, get_holders, get_stock_history, get_yf_financials, search_stocks, screen_us_stocks, get_sector_info, get_stock_news, get_peers | Yahoo Finance |
-| **User Interaction** | ask_user, schedule_alert, set_preference, recall_context, learn_fact, forget_fact | Internal |
-| **Rendering** | render_stock_card, render_comparison_table, render_score_gauge, render_chart, render_alert_confirm, render_supply_chain, render_theme_overview, render_kline_chart, render_institutional_flow, render_financial_statement | Frontend rich cards |
-| **Research** | web_search, fetch_page, deep_research | External web |
+| **Market Data** (11) | get_stock_price, get_day_trading, get_market_index, get_advance_decline, get_foreign_by_industry, get_institutional_flow, get_revenue, get_macro_data, screen_stocks, get_intl_price, get_futures_after_hours | FinMind |
+| **Institutional** (8) | get_margin_data, get_shareholding, get_main_force, get_government_bank, get_short_sale_balance, get_securities_lending, get_block_trade, get_margin_maintenance | FinMind |
+| **Fundamental** (4) | get_financials, get_dividend, get_market_value, … | FinMind |
+| **Technical** (2) | get_indicators, get_score | DuckDB (computed) |
+| **TWSE Direct** (20) | get_realtime_quote, get_notice_stocks, get_disposal_stocks, get_twse_institutional, get_futures_position, get_company_profile, get_supply_chain, get_theme_stocks, get_etf_data, get_active_etf_holders, get_shareholder_gift, get_otc_stock, get_put_call_ratio, get_options_analytics, get_backtest_result, get_company_esg, get_warrant_info, get_market_holidays, get_odd_lot, get_dividend_schedule | TWSE/TPEx/TAIFEX API |
+| **TDCC** (4) | get_shareholding_distribution, get_director_custody, get_weekly_balance, get_monthly_custody_change | TDCC OpenAPI |
+| **MOPS** (4) | get_announcements, get_treasury_stock, get_investor_conferences, get_director_holdings | MOPS (公開資訊觀測站) |
+| **Rankings** (3) | get_stock_rankings, get_institutional_rankings, get_margin_rankings | TWSE (official) |
+| **yfinance** (10) | get_analyst_target, get_earnings_calendar, get_holders, get_stock_history, get_yf_financials, search_stocks, screen_us_stocks, get_sector_info, get_stock_news, get_peers | Yahoo Finance |
+| **User / Memory** (6) | ask_user, schedule_alert, set_preference, recall_context, learn_fact, forget_fact | Internal |
+| **Rendering** (17) | render_stock_card, render_comparison_table, render_score_gauge, render_chart, render_alert_confirm, render_supply_chain, render_theme_overview, render_kline_chart, render_institutional_flow, render_financial_statement, render_dividend_history, render_short_position, render_options_sentiment, render_esg_scorecard, render_etf_profile, render_active_etf_holders, render_shareholder_gift | Frontend rich cards |
+| **Research** (3) | web_search, fetch_page, deep_research | External web |
 
 ### REST API Endpoints (59 TWSE + 169 via passthrough — available to frontend)
 
@@ -544,31 +567,43 @@ User message arrives
 | **yfinance** | `/international/yf/*` | 9 | Yahoo Finance |
 | **Other** | `/ai/*`, `/screener/*`, `/alerts/*`, `/figures/*` | 20+ | Internal/DuckDB |
 
-**Total accessible data endpoints: 300+ (80 via agent, 169 TWSE, 40+ FinMind, 51 yfinance, TDCC 96, MOPS 5). HiStock removed — Cloudflare-blocked; rankings re-pointed to official TWSE sources.**
+**Total accessible data endpoints: 300+ (68 via agent, plus TWSE/FinMind/yfinance/TDCC/MOPS REST). HiStock removed — Cloudflare-blocked; rankings re-pointed to official TWSE sources.**
 
 ---
 
 ## Security & Permissions
 
 ```
-┌─────────────────────────────────────────┐
-│          Permission Model               │
-│                                         │
-│  User Tiers:                            │
-│  ├─ Free: 60 req/min, basic tools      │
-│  ├─ Premium: 300 req/min, all tools    │
-│  └─ Pro: 600 req/min, priority routing │
-│                                         │
-│  Tool Access:                           │
-│  ├─ All tools: available to all tiers  │
-│  ├─ Subagents: Pro/Premium only        │
-│  └─ Deep research: rate limited        │
-│                                         │
-│  Human Approval (ask_user):             │
-│  ├─ Alert creation → confirm           │
-│  ├─ Ambiguous stock → clarify          │
-│  └─ Sensitive preference → verify      │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│          Permission & Entitlement Model                       │
+│  (single source of truth: app/core/entitlements.py)           │
+│                                                               │
+│  User Tiers (rate limit / daily AI chats):                    │
+│  ├─ Free:    60 req/min  · 3 chats/day                        │
+│  ├─ Premium: 300 req/min · 100 chats/day                      │
+│  └─ Pro:     600 req/min · unlimited                          │
+│                                                               │
+│  BYOK (user supplies own LLM key via SemanticMemory):         │
+│  └─ removes the daily chat limit on ANY tier (they pay the    │
+│     inference cost) → chat_limit_for() returns None           │
+│                                                               │
+│  Gated features (FEATURE_MIN_TIER; gates ONLY AI + sponsor    │
+│  data — market data / watchlist / news stay free):            │
+│  ├─ premium: ai_score, ai_summary, ai_swot, news_sentiment,   │
+│  │           sponsor_dataset                                  │
+│  └─ pro:     deep_research, realtime, main_force              │
+│                                                               │
+│  Enforcement:                                                 │
+│  ├─ chat limit → TierGate.check_chat_limit (chat.py + core)   │
+│  ├─ AI endpoints → teaser envelope {locked, required_tier,    │
+│  │   preview} for unentitled/anonymous (never 401)            │
+│  └─ sponsor tables → gate_rows() = top-N + locked strip       │
+│                                                               │
+│  Human Approval (ask_user):                                   │
+│  ├─ Alert creation → confirm                                  │
+│  ├─ Ambiguous stock → clarify                                 │
+│  └─ Sensitive preference → verify                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---

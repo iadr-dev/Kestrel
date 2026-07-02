@@ -35,6 +35,12 @@ premium/pro; a free account may answer simpler.
 | 13 | Short position trend | `short_position_trend` | chip_flow | `rich-cards/ShortPositionCard.tsx` |
 | 14 | Options sentiment | `options_sentiment` | market_briefing | `rich-cards/OptionsSentimentCard.tsx` |
 | 15 | ESG scorecard | `esg_scorecard` | company_research | `rich-cards/EsgScorecardCard.tsx` |
+| 16 | ETF profile | `etf_profile` | stock_analysis (ETF) | `rich-cards/EtfProfileCard.tsx` |
+| 17 | Active ETF holders | `active_etf_holders` | chip_flow (ETF) | `rich-cards/ActiveEtfHoldersCard.tsx` |
+| 18 | Shareholder gift | `shareholder_gift` | corporate_actions | `rich-cards/ShareholderGiftCard.tsx` |
+
+> Backend exposes 17 `render_*` tools; the frontend ships 16 rich-card components
+> (`stock_comparison` is a legacy alias with no dedicated card — see #2).
 
 ---
 
@@ -176,6 +182,33 @@ IV-rank if available.
 
 **Expect:** An ESG 評分 card — overall score /100 (colored), then per-topic bars
 (公司治理 / 溫室氣體排放 / 能源管理 / 水資源 / 人力發展…) each with a score and progress bar.
+
+---
+
+## 16. ETF profile — `etf_profile`
+
+**Prompt:** `0050 這檔 ETF 的基本資料，追蹤指數、規模、費用率、殖利率`
+
+**Expect:** An ETF profile card — name/code, tracked index, AUM/scale, expense ratio,
+distribution yield, and premium/discount to NAV.
+
+---
+
+## 17. Active ETF holders — `active_etf_holders`
+
+**Prompt:** `主動式 ETF 00980A 的前十大持股`
+
+**Expect:** A holdings card — the ETF's top constituents with weight %, each stock a
+link to its detail page.
+
+---
+
+## 18. Shareholder gift — `shareholder_gift`
+
+**Prompt:** `台積電 2330 有股東紀念品嗎？`
+
+**Expect:** A 股東紀念品 card — gift description, the qualifying record date, and
+collection details (or a clear "no gift" state if none).
 
 ---
 

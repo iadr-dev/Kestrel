@@ -6,8 +6,8 @@
 > Service-internals (DuckDB engine, LLM router internals, agent loop) are out of
 > scope except where an endpoint depends on them.
 >
-> Last reviewed: 2026-06-18 against `app/api/`, `app/main.py`, `app/middleware/`,
-> `app/dependencies.py`, `app/core/exceptions.py`.
+> Last reviewed: 2026-07-02 against `app/api/`, `app/main.py`, `app/middleware/`,
+> `app/dependencies.py`, `app/core/exceptions.py`, `app/core/entitlements.py`.
 
 ---
 
@@ -63,8 +63,8 @@ concerns (TLS, retry, error envelope) are centralized.
 ### 2.1 Assembly chain
 
 ```
-create_app()                      app/main.py:633
-  └─ app.include_router(v1_router, prefix="/api/v1")     main.py:682
+create_app()                      app/main.py:898
+  └─ app.include_router(v1_router, prefix=settings.api_prefix)   main.py:947
         └─ v1_router                                      app/api/v1/router.py
              ├─ internal_endpoints.router        (health, observe)
              ├─ finmind_endpoints.router         (data)
@@ -72,10 +72,12 @@ create_app()                      app/main.py:633
              ├─ twse_endpoints.router            (data)
              ├─ tdcc_endpoints.router            (data)
              ├─ etf_endpoints.router             (data)
+             ├─ gifts.router                     (shareholder-gift data)
              ├─ platform_endpoints.router        (kestrel/: auth,user,agent,…)
              ├─ channels.router                  (LINE/Telegram webhooks)
-             ├─ scrapers.router                  (HiStock/RSS/PTT)
-             └─ voice.router                     (STT/TTS)
+             ├─ scrapers.router                  (RSS/PTT)
+             ├─ voice.router                     (STT/TTS)
+             └─ push_router                       (SSE server-push: news/alert/score hints)
 ```
 
 Every path below is prefixed with **`/api/v1`** (`settings.api_prefix`).
@@ -90,10 +92,12 @@ Every path below is prefixed with **`/api/v1`** (`settings.api_prefix`).
 | TWSE | `twse/` | `/twse` | `/api/v1/twse/{trading,company,history,realtime,otc,taifex,generic,market}` |
 | TDCC | `tdcc/` | `/tdcc` | `/api/v1/tdcc/...` |
 | ETF | `etf/` | `/etf` | `/api/v1/etf/...` |
+| Gifts | `gifts.py` | `/gifts` | `/api/v1/gifts/...` |
 | Platform | `kestrel/` | per-router | see §2.3 |
 | Channels | `channels.py` | `/channels` | `/api/v1/channels/...` |
-| Scrapers | `scrapers.py` | `/scrapers` | `/api/v1/scrapers/...` |
+| Scrapers | `scrapers.py` | `/scrapers` | `/api/v1/scrapers/{rss,ptt}` |
 | Voice | `voice.py` | `/voice` | `/api/v1/voice/...` |
+| Push (SSE) | `push/sse.py` | `/events` | `/api/v1/events/stream` |
 
 > **Convention:** a route group is a package whose `__init__.py` aggregates one
 > or more sub-routers via `router.include_router(...)`. Sub-routers own their own
@@ -108,14 +112,20 @@ Every path below is prefixed with **`/api/v1`** (`settings.api_prefix`).
 | Module | Prefix | Tag | Access |
 |--------|--------|-----|--------|
 | `auth.py` | `/auth` | Auth | public / optional |
-| `user.py` | `/user` | User | authenticated |
+| `user.py` | `/user` | User | authenticated (incl. `GET /user/entitlements`) |
 | `pets.py` | `/user/pets` | Pets | authenticated |
 | `alerts.py` | `/alerts` | Alerts | authenticated |
 | `agent/` (subpackage) | `/agent` | Agent | authenticated |
 | `figures.py` | `/figures` | Figure Events | public |
 | `themes.py` | `/themes` | Themes | public |
-| `ai_analysis.py` | `/ai` | AI Analysis | public |
-| `admin.py` | `/admin` | Admin | admin-only |
+| `ai_analysis.py` | `/ai` | AI Analysis | public, **tier-gated** (teaser envelope for unentitled) |
+| `admin.py` | `/admin` | Admin | admin-only (incl. `POST /admin/users/{id}/tier` — placeholder subscription gateway) |
+
+> **Tier gating** (`app/core/entitlements.py`) — `/ai/score`, `/ai/summary`,
+> `/ai/rankings` are public but return a **teaser envelope**
+> `{data, locked, required_tier}` (or top-N + locked strip for rankings) when the
+> caller's tier lacks the feature; anonymous callers get the teaser, never a 401.
+> BYOK (a stored `custom_api_keys` fact) lifts the daily chat limit on any tier.
 
 ### 2.4 Agent subpackage (`kestrel/agent/`)
 
@@ -225,7 +235,11 @@ so a route can add fields (e.g. `summary`, `threshold`) without a new schema.
 |--------|-------|---------|
 | `DataListResponse` | `{ "data": [...], "count": N }` | most list endpoints |
 | `DataResponse` | `{ "data": {...} }` | single-item endpoints |
-| `DataListWithMeta` | `{ "data": [...], "count": N, "summary": {...} }` | aggregate endpoints |
+| `PaginatedResponse` | `{ "data": [...], "count": N, "page": …, "page_size": … }` | paged endpoints |
+| `MessageResponse` / `StatusResponse` | `{ "message": … }` / `{ "status": … }` | actions/mutations |
+
+Aggregate endpoints extend `DataListResponse` inline (via `extra: "allow"`) with a
+`summary` field rather than a distinct schema.
 
 **Rule:** never return a bare list/scalar — always the envelope, for client
 consistency and forward-compatibility.
@@ -335,7 +349,7 @@ async with httpx.AsyncClient(timeout=30.0, verify=verify_tls()) as client:
 
 ## 8. Middleware stack
 
-Added in `create_app()` (`app/main.py:667-677`). `add_middleware` is LIFO, so the
+Added in `create_app()` (`app/main.py:932-941`). `add_middleware` is LIFO, so the
 **last added is outermost**. Effective request-time order (outer → inner):
 
 ```
@@ -362,8 +376,15 @@ webhook outside dev.
 **Startup:** cache (Redis→memory fallback) → provider registry (FinMind) → DuckDB
 (+ seed if empty) → optional dev boot jobs (ingest/scoring/themes) → SQLAlchemy
 (+ ensure admin users) → agent system (tool registry, LLM router, `AgentService`)
-→ channel gateway (LINE/Telegram) → APScheduler cron jobs (daily ingest 19:00 TW,
-scoring 19:30, alert checks every 30 min, weekly financials Sat 14:00 UTC).
+→ channel gateway (LINE/Telegram) → APScheduler cron jobs.
+
+**Cron jobs** (per-dataset, TW time; ids in `app/main.py`): daily ingests staggered
+through the morning — prices/institutional/shareholding/PER 08:30, margin 13:30,
+revenue 14:00; compute indicators 09:00; ETF NAV 09:00 / holdings 09:30; news every
+30 min; AI scoring 14:30; alert checks every 30 min during 01:00–05:00 UTC; and a
+weekly set on the weekend — financials (Sat 14:00 UTC), themes (Sun 16:00),
+summaries (Sun 18:00), supply-chain (Sun 20:00), company profiles (Mon 10:00);
+figure-events scan twice daily (07:00, 15:00).
 
 **Multi-process model:** the scheduler runs in exactly one process (`run_scheduler`
 + not `read_only`); API workers open DuckDB `read_only=true` so many replicas read
@@ -405,13 +426,15 @@ the same file concurrently.
 | Shareholding | `/tdcc/*` | public | TDCCClient (graceful empty) |
 | ETF | `/etf/*` | public | TWSE ETF scraper (graceful empty) |
 | Auth | `/auth/*` | public/optional | AuthService |
-| User/Pets/Alerts | `/user/*`, `/user/pets/*`, `/alerts/*` | authed | platform services |
+| User/Pets/Alerts | `/user/*`, `/user/pets/*`, `/alerts/*` | authed | platform services; `/user/entitlements` |
+| Shareholder gifts | `/gifts/*` | public | gift data repo |
 | Agent | `/agent/*` | authed | AgentService (SSE chat) |
-| AI analysis | `/ai/*`, `/figures/*`, `/themes/*` | public | scoring / theme repos |
-| Admin | `/admin/*` | admin | job triggers |
+| AI analysis | `/ai/*`, `/figures/*`, `/themes/*` | public (tier-gated `/ai`) | scoring / theme repos |
+| Admin | `/admin/*` | admin | job triggers, `POST /admin/users/{id}/tier` |
 | Channels | `/channels/*` | public (signed) | ChannelGateway |
-| Scrapers | `/scrapers/*` | public | HiStock/RSS/PTT scrapers |
+| Scrapers | `/scrapers/{rss,ptt}` | public | RSS / PTT scrapers (HiStock removed) |
 | Voice | `/voice/transcribe`, `/voice/speak` | authed | `MediaService` (Whisper STT / tts-1) |
+| Server push | `/events/stream` | authed | SSE broker (news/alert/score refresh hints) |
 
 ---
 
