@@ -1,0 +1,41 @@
+name: backend-ci
+
+# Lint + strict type-check + tests for the FastAPI backend.
+on:
+  push:
+    branches: [main]
+    paths: ["kestrel-backend/**", ".github/workflows/backend-ci.yml"]
+  pull_request:
+    paths: ["kestrel-backend/**", ".github/workflows/backend-ci.yml"]
+
+defaults:
+  run:
+    working-directory: kestrel-backend
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+    env:
+      # Tests/imports construct Settings(); jwt_secret_key is the only required field.
+      JWT_SECRET_KEY: ci-test-secret-not-used-in-prod
+      ENVIRONMENT: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev --extra redis --extra observability
+
+      - name: Ruff (lint)
+        run: uv run ruff check app/ scripts/ tests/
+
+      - name: Mypy (strict type-check)
+        run: uv run mypy app/
+
+      - name: Pytest (fast suite — perf/load excluded by markers)
+        run: uv run pytest -q

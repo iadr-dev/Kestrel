@@ -1,0 +1,100 @@
+# Production compose — the SAME images as docker-compose.yml, but wired for the
+# single-writer DuckDB design.
+#
+#   scheduler  : the ONE writer. Runs the cron jobs (RUN_SCHEDULER=true) and opens
+#                DuckDB read-write (DUCKDB_READ_ONLY=false). Single worker.
+#   api        : stateless read replicas. NEVER write or schedule
+#                (RUN_SCHEDULER=false, DUCKDB_READ_ONLY=true). Scale freely.
+#   frontend   : Next.js standalone server, talks to `api`.
+#   postgres   : user data (auth, alerts, pets).
+#
+# Both backend services share ONE DuckDB file via the `duckdb_data` volume; only
+# `scheduler` mounts it writable in practice (read_only flag enforces it in-process).
+# Redis is REQUIRED in production (Upstash) — set it in .env.production.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file kestrel-backend/.env.production up -d --build
+#   docker compose -f docker-compose.prod.yml up -d --scale api=3   # scale read replicas
+
+services:
+  # --- The single writer + scheduler (exactly one replica) ---------------------
+  scheduler:
+    build: ./kestrel-backend
+    env_file:
+      - ./kestrel-backend/.env.production
+    environment:
+      - ENVIRONMENT=production
+      - RUN_SCHEDULER=true
+      - DUCKDB_READ_ONLY=false
+      - WEB_CONCURRENCY=1          # one process owns the read-write DuckDB connection
+      - DATABASE_URL=postgresql+asyncpg://kestrel:kestrel@postgres:5432/kestrel
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./kestrel-backend/data:/app/data
+      - duckdb_data:/app/market_data
+    restart: unless-stopped
+    # Healthy only once DuckDB is queryable — i.e. the writer has created the schema.
+    # The api replicas open DuckDB read-only and would crash if the file doesn't exist
+    # yet, so they wait on this (service_healthy) rather than just service_started.
+    # python:slim has no curl, so probe with stdlib urllib.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health/db', timeout=4).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 180s   # first boot ingests/seeds before the DB answers
+
+  # --- Stateless API read replicas (scale this, never the scheduler) -----------
+  api:
+    build: ./kestrel-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./kestrel-backend/.env.production
+    environment:
+      - ENVIRONMENT=production
+      - RUN_SCHEDULER=false        # replicas must NOT run cron (would duplicate ingests)
+      - DUCKDB_READ_ONLY=true      # replicas open DuckDB read-only (many can share the file)
+      - WEB_CONCURRENCY=4
+      - DATABASE_URL=postgresql+asyncpg://kestrel:kestrel@postgres:5432/kestrel
+    depends_on:
+      postgres:
+        condition: service_healthy
+      scheduler:
+        condition: service_healthy   # wait until the writer has created the DuckDB schema
+    volumes:
+      - ./kestrel-backend/data:/app/data
+      - duckdb_data:/app/market_data
+    restart: unless-stopped
+
+  frontend:
+    build: ./kestrel-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:8000/api/v1
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kestrel
+      POSTGRES_USER: kestrel
+      POSTGRES_PASSWORD: kestrel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kestrel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  duckdb_data:
