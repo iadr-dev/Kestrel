@@ -1,0 +1,65 @@
+name: international_stocks
+description: >
+  Use when user asks about US stocks, global markets, sector performance,
+  stock search, international screeners, or peer comparison.
+  "美股", "國際", "sector", "搜尋", "同業", "新聞".
+tier: free
+design_pattern: tool_wrapper
+output_format: text
+triggers:
+  - 美股
+  - 國際股
+  - 全球
+  - sector
+  - 產業
+  - 搜尋股票
+  - 找股票
+  - 同業
+  - 新聞
+  - news
+  - peers
+  - screen
+  - search stock
+  - US stock
+  - international
+  - 歐股
+  - 日股
+  - 歐洲
+  - 日本
+  - europe
+  - japan
+
+tools:
+  - get_stock_history
+  - get_yf_financials
+  - search_stocks
+  - screen_us_stocks
+  - get_sector_info
+  - get_stock_news
+  - get_peers
+  - get_intl_price
+
+instructions: |
+  Handle international/US stock queries:
+
+  For stock lookup:
+  - Use search_stocks to find tickers by company name or keyword
+  - Use get_stock_history for historical OHLCV (supports TW + US)
+
+  For analysis:
+  - Use get_yf_financials for income statement, balance sheet, cash flow
+  - Use get_peers to find competitor companies for comparison
+  - Use get_sector_info for sector/industry performance overview
+
+  For market scanning:
+  - Use screen_us_stocks with predefined screens (most_actives, day_gainers, day_losers, growth_technology_stocks, undervalued_large_caps)
+  - Use get_stock_news for recent headlines on a specific stock
+
+  For European / Japanese indices or stocks:
+  - Use get_intl_price (market="europe" or "japan") — US tickers should use get_stock_history instead
+
+  Key points:
+  - Always clarify if user means TW or US when ambiguous
+  - For TW stocks use 4-digit codes (2330), for US use symbols (AAPL)
+  - Provide both Chinese and English context for international stocks
+  - Compare US peers when analyzing TW semiconductor/tech stocks

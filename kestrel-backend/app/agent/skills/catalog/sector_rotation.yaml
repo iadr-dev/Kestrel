@@ -1,0 +1,46 @@
+name: sector_rotation
+description: 'Use when user asks about sector performance, industry trends, "產業",
+  "板塊", "哪個產業", "sector".
+
+  '
+tier: premium
+design_pattern: pipeline
+output_format: rich_card
+triggers:
+- 產業
+- 板塊
+- sector
+- 類股
+- industry
+tools:
+- get_stock_price
+- screen_stocks
+- get_macro_data
+- get_sector_info
+- get_market_index
+- get_stock_rankings
+- get_foreign_by_industry
+instructions: 'Analyze sector rotation:
+
+  1. Screen for strong stocks to identify leading sectors
+
+  2. Check macro indicators for sector tailwinds
+
+  3. Identify which sectors are in favor vs out of favor
+
+
+  Report:
+
+  🔥 強勢族群: Top performing sectors
+
+  ❄️ 弱勢族群: Lagging sectors
+
+  🔄 輪動方向: Where money is flowing
+
+  💡 建議關注: Sectors with improving momentum
+
+
+  Rich output: use render_chart (bar) to visualize relative sector performance
+  or foreign net buy/sell by industry, then add the rotation analysis text.
+
+  '

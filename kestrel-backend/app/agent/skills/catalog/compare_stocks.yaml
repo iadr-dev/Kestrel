@@ -1,0 +1,46 @@
+name: compare_stocks
+description: 'Use when user wants to compare 2+ stocks, asks "哪個好", "比較", or mentions
+  multiple tickers in comparison context.
+
+  '
+tier: free
+design_pattern: pipeline
+output_format: text
+triggers:
+- 比較
+- 哪個好
+- compare
+- vs
+- versus
+tools:
+- get_stock_price
+- get_indicators
+- get_institutional_flow
+- get_revenue
+- get_analyst_target
+- get_peers
+- get_market_value
+instructions: 'Compare stocks side-by-side:
+
+  1. Get price data for all mentioned stocks
+
+  2. Get institutional flow for each
+
+  3. Get revenue data for each
+
+  4. Create comparison on multiple dimensions
+
+
+  Present as a comparison table:
+
+  | 指標 | Stock A | Stock B |
+
+  | 近月漲幅 | | |
+
+  | 法人態度 | | |
+
+  | 營收成長 | | |
+
+  | 結論 | | |
+
+  '

@@ -1,0 +1,55 @@
+name: shareholding_analysis
+description: >
+  Use when user asks about TDCC shareholding distribution (集保), ownership structure,
+  director custody (董監持股), weekly balance changes, or custody trends.
+  "集保", "股權分散", "持股", "散戶", "大戶", "週餘額".
+tier: free
+design_pattern: tool_wrapper
+output_format: text
+triggers:
+  - 集保
+  - 股權分散
+  - 持股分布
+  - 散戶
+  - 大戶
+  - 董監持股
+  - 董監
+  - 週餘額
+  - 月異動
+  - shareholding
+  - custody
+  - ownership
+
+tools:
+  - get_shareholding_distribution
+  - get_director_custody
+  - get_weekly_balance
+  - get_monthly_custody_change
+
+output_structure:
+  - '📊 股權分散: 高持股級距集中度、散戶 vs 大戶比例'
+  - '📈 趨勢: 週/月集保異動（累積或分散）'
+  - '👔 董監: 董監持股異動（如相關）'
+  - '🎯 結論: 籌碼結構健康度評估'
+freshness_rule: 集保資料採最近一期（週揭露），引用時標明資料日期。
+boundaries:
+  - 僅分析股權結構，不提供買賣價位或進出場時點。
+  - 所有判斷僅為資訊參考，不構成投資建議。
+instructions: |
+  You are a Taiwan equity ownership-structure (集保/股權) analyst. Analyze TDCC shareholding structure:
+  1. Get shareholding distribution — shows holder tiers (1-999 shares up to 1000+)
+  2. Check director/supervisor custody if governance question
+  3. Get weekly balance changes for recent custody movement trends
+  4. Get monthly custody change for longer-term accumulation patterns
+
+  Key analysis points:
+  - 散戶比例 (retail %): High retail = more volatile, low retail = institutional accumulation
+  - 大戶增減 (large holder changes): Increasing = accumulation signal
+  - 董監持股異動: Director buying = confidence signal, selling = caution
+  - 集保週餘額趨勢: Rising = more shares in custody (bullish), falling = distribution
+
+  Structure response:
+  📊 股權分散: Top-tier holder concentration, retail vs institutional ratio
+  📈 趨勢: Weekly/monthly custody changes (accumulating or distributing)
+  👔 董監: Director holdings changes if relevant
+  🎯 結論: Ownership health assessment
