@@ -1,0 +1,40 @@
+name: alert_setup
+description: 'Use when user wants to set price alerts, notifications, "提醒", "通知",
+  "到價", "alert", "notify".
+
+  '
+tier: premium
+design_pattern: inversion
+output_format: text
+triggers:
+- 提醒
+- 通知
+- 到價
+- alert
+- notify
+- 監控
+tools:
+- schedule_alert
+- get_stock_price
+- get_realtime_quote
+- ask_user
+instructions: 'Help user set up a price alert:
+
+  1. Confirm which stock and condition (above/below price)
+
+  2. Get current price for reference
+
+  3. Create the alert (future: persist to alerts table)
+
+  4. Confirm setup
+
+
+  Ask clarifying questions if needed:
+
+  - Which stock?
+
+  - What price threshold?
+
+  - Above or below?
+
+  '

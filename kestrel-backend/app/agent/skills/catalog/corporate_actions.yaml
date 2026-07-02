@@ -1,0 +1,51 @@
+name: corporate_actions
+description: >
+  Use when user asks about material announcements (重大訊息), treasury stock buybacks (庫藏股),
+  investor conferences (法說會), or director shareholding changes.
+  "公告", "重大訊息", "庫藏股", "法說會", "買回".
+tier: free
+design_pattern: tool_wrapper
+output_format: text
+triggers:
+  - 重大訊息
+  - 公告
+  - 庫藏股
+  - 買回
+  - 法說會
+  - 法人說明會
+  - 董監異動
+  - 減資
+  - 除權息
+  - announcement
+  - buyback
+  - treasury
+  - investor conference
+  - capital reduction
+  - ex-dividend
+
+tools:
+  - get_announcements
+  - get_treasury_stock
+  - get_investor_conferences
+  - get_director_holdings
+  - get_capital_reduction
+  - get_dividend_schedule
+
+instructions: |
+  Research corporate actions and governance events:
+  1. Check recent material announcements for the stock/market
+  2. Look up treasury stock buyback records (bullish signal when company buys back)
+  3. Find upcoming investor conferences (potential catalyst events)
+  4. Check director shareholding changes (insider confidence indicator)
+
+  Key analysis points:
+  - 重大訊息: Classify impact (positive/negative/neutral) and urgency
+  - 庫藏股: Buyback purpose, execution rate, period remaining
+  - 法說會: Upcoming dates as potential catalysts, recent topics
+  - 董監持股: Insider buying = strong bullish, selling = need context
+
+  Structure response:
+  📢 重大訊息: Recent key announcements with impact assessment
+  💰 庫藏股: Active buyback programs and their signals
+  🎤 法說會: Upcoming conferences to watch
+  👔 董監動態: Notable insider transactions

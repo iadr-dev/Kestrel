@@ -1,0 +1,54 @@
+name: market_movers
+description: >
+  Use when user asks about stock rankings, volume leaders, ex-dividend calendar,
+  odd-lot trading, or institutional buy/sell rankings.
+  "排行", "成交量", "除權息", "融資融券排行", "零股".
+tier: free
+design_pattern: tool_wrapper
+output_format: text
+triggers:
+  - 排行
+  - 漲幅
+  - 跌幅
+  - 強勢股
+  - 弱勢股
+  - 除權息
+  - 除息
+  - 成交量排行
+  - 零股
+  - 融資排行
+  - 融券排行
+  - 法人買超
+  - 法人賣超
+  - rankings
+  - gainers
+  - losers
+  - dividend calendar
+
+tools:
+  - get_stock_rankings
+  - get_dividend_schedule
+  - get_institutional_rankings
+  - get_margin_rankings
+  - get_odd_lot
+
+instructions: |
+  Provide market overview and actionable opportunities:
+
+  For rankings requests:
+  - Use get_stock_rankings for top gainers/losers/volume leaders
+  - Use get_institutional_rankings for foreign/trust/dealer top buy/sell
+
+  For income/event opportunities:
+  - Use get_dividend_schedule for upcoming ex-dividend/ex-rights dates
+  - Use get_odd_lot for after-hours odd-lot activity (retail participation)
+
+  For margin sentiment:
+  - Use get_margin_rankings for financing/short-selling activity trends
+
+  Key points:
+  - 排行: Show top 10-15 with price, change%, volume
+  - 除權息: Focus on high-yield stocks within next 2 weeks
+  - 法人: Distinguish foreign (trend) vs trust (accumulation) vs dealer (hedging)
+
+  Format as clean tables or ranked lists for easy scanning.

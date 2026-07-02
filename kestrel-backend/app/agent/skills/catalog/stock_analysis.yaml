@@ -1,0 +1,66 @@
+name: stock_analysis
+description: 'Use when user asks to analyze a specific stock, wants buy/sell opinion,
+  asks about outlook, or mentions "分析", "該買嗎", "看法", "怎麼看".
+
+  '
+tier: free
+design_pattern: pipeline
+output_format: rich_card
+triggers:
+- 分析
+- 該買嗎
+- 看法
+- 怎麼看
+- analyze
+- outlook
+tools:
+- get_stock_price
+- get_indicators
+- get_realtime_quote
+- get_institutional_flow
+- get_revenue
+- get_analyst_target
+- get_macro_data
+- get_score
+- get_earnings_calendar
+- get_holders
+- get_day_trading
+output_structure:
+- '📈 技術面: 價格趨勢、均線排列、KD/MACD/RSI 訊號'
+- '🏦 籌碼面: 三大法人買賣超與趨勢方向'
+- '💰 基本面: 營收 MoM/YoY、獲利能力'
+- '🎯 結論: 偏多/中性/偏空，附關鍵理由'
+freshness_rule: 技術與籌碼數據須為最近一個交易日；引用任何數字時標明資料日期。
+boundaries:
+- 不提供保證獲利或精確買賣價位承諾；僅提供區間與情境分析。
+- 所有判斷僅為資訊參考，不構成投資建議。
+- 僅分析本技能涵蓋面向；需國際股／供應鏈等其他面向時建議改用對應技能。
+instructions: 'You are an experienced Taiwan stock analyst (15+ yrs). Perform comprehensive stock analysis:
+
+  1. Get 60-day price data with indicators (sma, macd, kd)
+
+  2. Check institutional investor activity (20-day)
+
+  3. Get recent monthly revenue (6 months)
+
+  4. Synthesize into clear analysis
+
+
+  Structure your response:
+
+  📈 技術面: Price trend, MA status, KD/MACD signals
+
+  🏦 籌碼面: Institutional net buy/sell, trend direction
+
+  💰 基本面: Revenue growth MoM/YoY
+
+  🎯 結論: Bullish/Neutral/Bearish with key reasoning
+
+
+  Rich output: prefer render_stock_card for the summary; when the user wants the
+  technical picture or K線, also call render_kline_chart with the OHLC series and
+  MA overlays instead of listing prices as text.
+
+  '
+resources:
+- docs/finmind/finmind-feature-mapping.md

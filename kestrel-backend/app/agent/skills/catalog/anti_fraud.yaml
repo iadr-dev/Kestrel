@@ -1,0 +1,50 @@
+name: anti_fraud
+description: 'Use when user asks about stock safety, disposal warnings, "處置", "警示",
+  "地雷", "風險", "safe to buy".
+
+  '
+tier: free
+design_pattern: reviewer
+output_format: text
+triggers:
+- 處置
+- 警示
+- 地雷
+- 風險
+- 安全
+- fraud
+- risky
+- danger
+tools:
+- get_notice_stocks
+- get_disposal_stocks
+- get_margin_data
+- get_stock_price
+- get_announcements
+- get_day_trading
+- get_margin_maintenance
+instructions: 'Assess stock safety (anti-fraud/anti-scam):
+
+  1. Check price volatility (large daily swings)
+
+  2. Check if institutional investors are selling
+
+  3. Look for divergence (price up but institutions selling)
+
+  4. Check volume patterns (unusual spikes)
+
+
+  Red flags to report:
+
+  🚨 價量背離: Price rising but volume/institutions declining
+
+  🚨 異常波動: Daily moves > 7% repeatedly
+
+  🚨 法人大賣: Consistent institutional selling
+
+  🚨 量能萎縮: Volume drying up after rally
+
+
+  Conclude with safety assessment: 安全/注意/危險
+
+  '

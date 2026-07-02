@@ -1,0 +1,54 @@
+name: screener
+description: 'Use when user wants to find/discover stocks matching criteria, "選股",
+  "推薦", "強勢股", "找", "screen", "which stocks".
+
+  '
+tier: free
+design_pattern: tool_wrapper
+output_format: rich_card
+triggers:
+- 選股
+- 推薦
+- 強勢股
+- 找
+- screen
+- filter
+- which stock
+tools:
+- screen_stocks
+- screen_us_stocks
+- get_stock_price
+- get_indicators
+- get_stock_rankings
+- get_backtest_result
+- get_options_analytics
+instructions: 'Help user screen for stocks:
+
+  1. Determine screening criteria from user''s request
+
+  2. Run appropriate preset screen (strong_5d, trend, surge, breakout_bollinger)
+
+  3. Get details on top results
+
+  4. Present ranked list with key metrics
+
+
+  Available screen types:
+
+  - strong_5d / strong_10d: Recent momentum leaders
+
+  - trend: MA5 > MA20 > MA60 (uptrend aligned)
+
+  - breakout_bollinger: Breaking above Bollinger upper band
+
+  - surge: Day change > 7%
+
+
+  Format top 5-10 results with stock_id, price, and why they qualified.
+
+
+  Rich output: when presenting a handful of top candidates side by side, call
+  render_comparison_table with their key metrics so the user can scan them
+  visually; otherwise a ranked text list is fine.
+
+  '

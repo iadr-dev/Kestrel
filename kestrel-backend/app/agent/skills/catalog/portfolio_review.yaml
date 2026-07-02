@@ -1,0 +1,45 @@
+name: portfolio_review
+description: 'Use when user asks about their portfolio, holdings, P&L, "持股", "庫存",
+  "我的股票", "portfolio".
+
+  '
+tier: free
+design_pattern: inversion
+output_format: rich_card
+triggers:
+- 持股
+- 庫存
+- 我的
+- 投資組合
+- portfolio
+- holdings
+tools:
+- get_stock_price
+- get_indicators
+- get_institutional_flow
+- get_revenue
+- get_analyst_target
+- get_dividend
+- get_realtime_quote
+instructions: 'Review user''s portfolio:
+
+  1. First ask what stocks they hold (if not known from memory)
+
+  2. Get current price for each holding
+
+  3. Check institutional sentiment for each
+
+  4. Provide portfolio-level summary
+
+
+  If user''s holdings are known from memory, skip asking.
+
+  Present:
+
+  📋 持股摘要: Each stock with current price and change
+
+  🏦 法人態度: Which holdings have institutional support
+
+  ⚠️ 需注意: Any holdings with deteriorating signals
+
+  '
