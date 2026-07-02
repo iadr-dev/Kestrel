@@ -1,8 +1,8 @@
 # Kestrel Frontend — Architecture
 
-**Last updated:** 2026-06-20
-**App:** `kestrel-web` — Taiwan stock analysis platform (authenticated dashboard +
-AI agent chat + marketing landing).
+**Last updated:** 2026-07-02
+**App:** `kestrel-web` — Taiwan/US stock analysis platform (authenticated dashboard +
+AI agent chat + marketing landing + pricing).
 
 ## Stack
 
@@ -37,29 +37,32 @@ src/
   app/                      # App Router routes
     layout.tsx              # root (Server) — wraps <Providers>
     page.tsx                # landing (Server)
+    pricing/                # pricing page (monthly/annual + per-tier BYOK toggle)
     (auth)/login, callback  # auth flow
     dashboard/
       layout.tsx            # shell: sidebar + watchlist panel (client)
       page.tsx              # dashboard home
       chat/                 # AI agent chat (SSE streaming)
-      market/               # market overview (36 market components)
+      market/               # market overview
       screener/             # stock screener
       stocks/[id]/          # stock detail (tabbed)
       settings/
-        page.tsx            # thin shell: nav + section routing (73 lines)
+        page.tsx            # thin shell: nav + section routing
         sections/           # 9 section components + barrel
   components/
     Providers.tsx           # React Query + theme providers (client root)
-    chat/                   # chat UI (11) + rich-cards/ (14 agent render cards)
-    market/                 # market widgets (36)
-    stock/                  # stock-detail tabs (13)
-    landing/                # marketing (Hero, Features, Navbar, Footer)
+    chat/                   # chat UI (14) + rich-cards/ (16 agent render cards)
+    market/                 # market widgets (45)
+    stock/                  # stock-detail tabs (25)
+    gating/                 # tier-gating primitives (TierGate, UpgradeCTA, ChatUsageBadge)
+    landing/ + flow/        # marketing (Hero, Features, Navbar, Footer, FlyingKestrel)
     layout/                 # Sidebar, WatchlistPanel
-  hooks/                    # useAgentChat, useAgentStream, useMarketData, useTradingDate
-  lib/                      # api, auth, queryKeys, date, format, chart-colors, constants
+  hooks/                    # useAgentChat, useAgentStream, useMarketData, useEntitlements,
+                            #   useServerEvents (SSE push), useTradingDate, …
+  lib/                      # api, auth, queryKeys, entitlements, date, format, constants
   types/                    # shared domain types (barrel: @/types)
   i18n/                     # next-intl config + request (cookie-based locale)
-  messages/                 # zh-TW.json, en.json
+  messages/                 # zh-TW.json, en.json  (namespaces incl. gating, pricing)
   proxy.ts                  # middleware (route matcher; auth is client-side)
 ```
 
@@ -109,6 +112,25 @@ Token + refresh token in `localStorage`. `apiFetch` auto-refreshes on 401.
 client-side guard in `dashboard/layout.tsx` handles redirects. OAuth (Google/LINE)
 via `/auth/oauth/{provider}/authorize`, with account-linking (`?link=true`).
 
+### Tier gating / entitlements
+
+The server is the single source of truth — `useEntitlements()` (`hooks/`) reads the
+server-computed `entitlements` object off `/user/profile` and exposes `can(feature)`,
+`tier`, `chatLimit`, `chatUsed`, `hasKeys`. The client never re-implements tier math;
+`lib/entitlements.ts` mirrors only the `FeatureKey` union + payload types (so `tsc`
+catches drift). Gated surfaces wrap content in the shared **`<TierGate>`**
+(`components/gating/`) with two modes: `teaser` (frosted whole-card overlay + upgrade
+CTA, for AI blocks) and `partial` (top-N rows then a locked strip, for tables).
+Backends return a `{locked, required_tier, preview}` envelope; the overlay is cosmetic
+(no real data sits behind the blur). Gates AI features + sponsor data only — watchlist,
+TW/US market data, charts and news stay free.
+
+### Server push (SSE)
+
+`useServerEvents()` subscribes to `/api/v1/events/stream` and invalidates React Query
+caches on `news`/`alert`/`score` refresh hints — a decoupled push layer that keeps
+polling only for market-hours live quotes.
+
 ## The agent chat pipeline (most complex feature)
 
 `useAgentChat` → `useAgentStream` consume an SSE stream of typed events
@@ -116,7 +138,7 @@ via `/auth/oauth/{provider}/authorize`, with account-linking (`?link=true`).
 `ask_user`, `error`, `done`). `rich_card` events are injected as
 `[RICH_CARD:{json}]` into message text; `MessageBubble` parses and switches on
 `card_type` to render the matching component from `components/chat/rich-cards/`
-(14 cards, barrel-exported). Pet/gacha status events (`pet_pull_earned`,
+(16 cards, barrel-exported). Pet/gacha status events (`pet_pull_earned`,
 `pet_leveled`) surface as toasts. See [agent-architecture.md](./agent-architecture.md)
 and [rich-card.md](./rich-card.md).
 

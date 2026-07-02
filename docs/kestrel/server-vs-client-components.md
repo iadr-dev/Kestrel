@@ -50,7 +50,13 @@ This is the correct architecture for the product — not a smell.
 
 ## Convertible-surface audit (measured, not guessed)
 
-Scanned all 89 `"use client"` files for genuine client triggers.
+> The file-level audit below was run at the 2026-06-20 snapshot (89 `"use client"`
+> files; ~144 as of 2026-07-02 after the tier-gating, pricing, and push additions).
+> The *conclusion* is unchanged — the added surfaces (gating overlays, pricing toggle,
+> SSE subscriber, entitlements hook) are all interactive/browser-state components that
+> legitimately need the client boundary. Re-audit only if RSC becomes a measured need.
+
+Scanned all 89 `"use client"` files (2026-06-20 snapshot) for genuine client triggers.
 
 ### Trigger-free leaf components (10) — but **0 bundle benefit**
 
